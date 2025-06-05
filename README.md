@@ -19,7 +19,7 @@ A bot to _automagically_ delete _stories_ from Telegram.
 
 
 | Name | Required | Description |
-|---|---|---|
+|:--|:-:|:--|
 | `BOT_TOKEN` | ✅ | The token Telegram's `@BotFather` gives you |
 | `BOT_URL` | ✅ | The URL where your bot is reachable by webhooks (e.g.: `https://my.bot/webhook`) |
 | `PORT` | ⛔️ | The port to listen for HTTP webhooks (defaults to `8000`) |
