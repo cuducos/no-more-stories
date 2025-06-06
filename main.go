@@ -9,7 +9,9 @@ import (
 	"log/slog"
 	"math/rand"
 	"net/http"
+	"net/http/httputil"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -23,6 +25,7 @@ type config struct {
 	port    string
 	baseURL string
 	botURL  string
+	debug   bool
 }
 
 func loadConfig() (config, error) {
@@ -40,6 +43,8 @@ func loadConfig() (config, error) {
 	if c.botURL == "" {
 		return config{}, errors.New("missing BOT_URL environment variable")
 	}
+	d := os.Getenv("DEBUG")
+	c.debug = d == "1" || strings.ToLower(d) == "true"
 	return c, nil
 }
 
@@ -79,6 +84,14 @@ func (b *bot) post(n string, body io.Reader) error {
 			return fmt.Errorf("error reading http response body from %s: %w", n, err)
 		}
 		return fmt.Errorf("got unexpected status code from %s: %d, body: %s", n, r.StatusCode, string(c))
+	}
+	if b.config.debug {
+		c, err := io.ReadAll(r.Body)
+		if err != nil {
+			slog.Error("could not log successful post request", "error", err)
+			return nil
+		}
+		slog.Debug("post request successful", "name", n, "status", r.StatusCode, "response", c)
 	}
 	return nil
 }
@@ -123,6 +136,14 @@ func (b *bot) deleteWebhook() error {
 }
 
 func (b *bot) handler(w http.ResponseWriter, r *http.Request) {
+	if b.config.debug {
+		d, err := httputil.DumpRequest(r, true)
+		if err != nil {
+			slog.Error("could not log request", "error", err)
+		} else {
+			slog.Debug("received", "request", string(d))
+		}
+	}
 	if r.Header.Get(secretKeyHeader) != b.secretKey {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
@@ -162,6 +183,9 @@ func main() {
 	if err != nil {
 		slog.Error("error loading config", "error", err)
 		os.Exit(1)
+	}
+	if c.debug {
+		slog.SetLogLoggerLevel(slog.LevelDebug)
 	}
 	b := newBot(c)
 	if err := b.setWebhook(); err != nil {
