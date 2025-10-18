@@ -1,5 +1,5 @@
 app = 'no-more-stories'
-primary_region = 'ams'
+primary_region = 'gru'
 
 [env]
   PORT = '8080'
