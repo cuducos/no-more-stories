@@ -1,4 +1,4 @@
-# No More Stories
+# No More Stories [![Tests & quality check](https://github.com/cuducos/no-more-stories/actions/workflows/ci.yaml/badge.svg)](https://github.com/cuducos/no-more-stories/actions/workflows/ci.yaml)
 
 A bot to _automagically_ delete _stories_ from Telegram.
 
