@@ -2,7 +2,7 @@ package main
 
 import (
 	"bytes"
-	"encoding/json"
+	"encoding/json/v2"
 	"errors"
 	"fmt"
 	"io"
@@ -18,31 +18,33 @@ import (
 const (
 	defaultPort       = "8000"
 	secretKeyHeader   = "X-Telegram-Bot-Api-Secret-Token"
-	charsForsecretKey = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-"
+	charsForSecretKey = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-"
 )
 
+var allowedUpdates = [...]string{"message", "edited_message", "channel_post", "edited_channel_post", "business_message", "edited_business_message"}
+
 type config struct {
-	port    string
-	baseURL string
-	botURL  string
-	debug   bool
+	port   string
+	apiURL string
+	botURL string
+	debug  bool
 }
 
 func loadConfig() (config, error) {
-	var c config
-	c.port = os.Getenv("PORT")
-	if c.port == "" {
-		c.port = defaultPort
-	}
 	t := os.Getenv("BOT_TOKEN")
 	if t == "" {
 		return config{}, errors.New("missing BOT_TOKEN environment variable")
 	}
-	c.baseURL = fmt.Sprintf("https://api.telegram.org/bot%s/", t)
+	var c config
 	c.botURL = os.Getenv("BOT_URL")
 	if c.botURL == "" {
 		return config{}, errors.New("missing BOT_URL environment variable")
 	}
+	c.port = os.Getenv("PORT")
+	if c.port == "" {
+		c.port = defaultPort
+	}
+	c.apiURL = fmt.Sprintf("https://api.telegram.org/bot%s/", t)
 	d := os.Getenv("DEBUG")
 	c.debug = d == "1" || strings.ToLower(d) == "true"
 	return c, nil
@@ -72,12 +74,16 @@ type bot struct {
 }
 
 func (b *bot) post(n string, body io.Reader) error {
-	u := fmt.Sprintf("%s%s", b.config.baseURL, n)
+	u := fmt.Sprintf("%s%s", b.config.apiURL, n)
 	r, err := http.Post(u, "application/json", body)
 	if err != nil {
 		return fmt.Errorf("error sending http request to %s: %w", n, err)
 	}
-	defer r.Body.Close()
+	defer func() {
+		if err := r.Body.Close(); err != nil {
+			slog.Error("could not close htp body", "url", u, "error", err)
+		}
+	}()
 	if r.StatusCode != http.StatusOK {
 		c, err := io.ReadAll(r.Body)
 		if err != nil {
@@ -104,7 +110,7 @@ type deleteMessagePayload struct {
 func (b *bot) deleteStory(m message) error {
 	d := new(bytes.Buffer)
 	p := deleteMessagePayload{m.Chat.ID, m.ID}
-	if err := json.NewEncoder(d).Encode(p); err != nil {
+	if err := json.MarshalWrite(d, p); err != nil {
 		return fmt.Errorf("error encoding deleteMessage payload: %w", err)
 	}
 	return b.post("deleteMessage", d)
@@ -122,10 +128,10 @@ func (b *bot) setWebhook() error {
 	p := setWebhookPayload{
 		Url:            b.config.botURL,
 		MaxConnections: 100,
-		AllowedUpdates: []string{"message", "edited_message", "channel_post", "edited_channel_post", "business_message", "edited_business_message"},
+		AllowedUpdates: allowedUpdates[:],
 		SecretToken:    b.secretKey,
 	}
-	if err := json.NewEncoder(d).Encode(p); err != nil {
+	if err := json.MarshalWrite(d, p); err != nil {
 		return fmt.Errorf("error encoding setWebhook payload: %w", err)
 	}
 	return b.post("setWebhook", d)
@@ -153,7 +159,7 @@ func (b *bot) handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var u update
-	if err := json.NewDecoder(r.Body).Decode(&u); err != nil {
+	if err := json.UnmarshalRead(r.Body, &u); err != nil {
 		slog.Error("failed to decode request body", "error", err)
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
@@ -172,7 +178,7 @@ func newBot(c config) bot {
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	s := make([]byte, r.Intn(128)+128)
 	for i := range s {
-		s[i] = charsForsecretKey[r.Intn(len(charsForsecretKey))]
+		s[i] = charsForSecretKey[r.Intn(len(charsForSecretKey))]
 	}
 	b := bot{config: c, secretKey: string(s)}
 	return b
@@ -192,7 +198,11 @@ func main() {
 		slog.Error("error setting webhook", "error", err)
 		os.Exit(1)
 	}
-	defer b.deleteWebhook()
+	defer func() {
+		if err := b.deleteWebhook(); err != nil {
+			slog.Error("error deleting webhook", "error", err)
+		}
+	}()
 	addr := fmt.Sprintf("0.0.0.0:%s", b.config.port)
 	http.HandleFunc("/", b.handler)
 	slog.Info(fmt.Sprintf("Serving at %s", addr))

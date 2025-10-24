@@ -1,11 +1,12 @@
-FROM golang:1.24-bookworm AS build
+FROM golang:1.25-trixie AS build
+ENV GOEXPERIMENT=jsonv2
 WORKDIR /nms
 COPY go.mod .
 RUN go mod download
 COPY . .
-RUN go build -o /usr/bin/nms
+RUN go build -o /usr/bin/nms && go clean cache
 
-FROM debian:bookworm-slim
+FROM debian:trixie-slim
 RUN apt-get update && \
     apt-get install -y --no-install-recommends ca-certificates && \
     update-ca-certificates && \

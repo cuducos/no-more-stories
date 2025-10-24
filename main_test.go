@@ -1,7 +1,7 @@
 package main
 
 import (
-	"encoding/json"
+	"encoding/json/v2"
 	"os"
 	"path/filepath"
 	"testing"
@@ -22,10 +22,13 @@ func TestMessageIsStory(t *testing.T) {
 			if err != nil {
 				t.Errorf("expect no error opening %s, got %s", p, err)
 			}
-			defer f.Close()
+			defer func() {
+				if err := f.Close(); err != nil {
+					t.Errorf("expected no error closing %s, got %s", p, err)
+				}
+			}()
 			var u update
-			err = json.NewDecoder(f).Decode(&u)
-			if err != nil {
+			if err = json.UnmarshalRead(f, &u); err != nil {
 				t.Errorf("expect no error decoding %s, got %s", p, err)
 			}
 			got := u.isStory()
