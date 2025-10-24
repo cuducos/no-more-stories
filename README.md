@@ -5,7 +5,7 @@ A bot to _automagically_ delete _stories_ from Telegram.
 ## Why
 
 * Group admins cannot configure it so users cannot forward _Stories_
-* Telegram bot API offers no information about the content of shared _Stories_ so group admins can automate protectio from spammers and scammers
+* Telegram bot API offers no information about the content of shared _Stories_ so group admins can automate protection from spammers and scammers
 * Forwarding a _Story_ is a strategy used by spammers and scammers due to the flaws above
 
 ## How
@@ -17,7 +17,6 @@ A bot to _automagically_ delete _stories_ from Telegram.
 
 ### Environment variables
 
-
 | Name | Required | Description |
 |:--|:-:|:--|
 | `BOT_TOKEN` | ✅ | The token Telegram's `@BotFather` gives you |
@@ -25,11 +24,10 @@ A bot to _automagically_ delete _stories_ from Telegram.
 | `PORT` | ⛔️ | The port to listen for HTTP webhooks (defaults to `8000`) |
 | `DEBUG` | ⛔️ | Whether or not to log requests for debugging purposes |
 
-
 ### Tests and checks
 
 ```console
 $ gofmt -w .
-$ staticcheck ./...
+$ golangci-lint run ./...
 $ go test ./...
 ```
