@@ -1,0 +1,30 @@
+name: Tests & quality check
+on: [push, pull_request]
+env:
+  GOEXPERIMENT: jsonv2
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: WillAbides/setup-go-faster@v1.14.0
+        with:
+          go-version: "1.25"
+      - run: if [ "$(gofmt -s -l . | wc -l)" -gt 0 ]; then exit 1; fi
+  linter:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: WillAbides/setup-go-faster@v1.14.0
+        with:
+          go-version: "1.25"
+      - uses: golangci/golangci-lint-action@v8
+      - run: "golangci-lint run ./..."
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: WillAbides/setup-go-faster@v1.14.0
+        with:
+          go-version: "1.25"
+      - run: go test --race ./...

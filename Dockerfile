@@ -4,7 +4,7 @@ WORKDIR /nms
 COPY go.mod .
 RUN go mod download
 COPY . .
-RUN go build -o /usr/bin/nms && go clean cache
+RUN go build -o /usr/bin/nms && go clean -cache -modcache -testcache -fuzzcache
 
 FROM debian:trixie-slim
 RUN apt-get update && \
