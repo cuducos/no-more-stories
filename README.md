@@ -10,8 +10,8 @@ A bot to _automagically_ delete _stories_ from Telegram.
 
 ## How
 
-1. Add [@nomorestories_bot](https://telegram.me/nomorestories_bot) to your group
-1. Make [@nomorestories_bot](https://telegram.me/nomorestories_bot) an admin able to delete _Stories_
+1. Add [`@nomorestories_bot`](https://telegram.me/nomorestories_bot) to your group
+1. Make [`@nomorestories_bot`](https://telegram.me/nomorestories_bot) an admin able to delete _Stories_
 
 ## Contributing
 
